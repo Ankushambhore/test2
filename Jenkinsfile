@@ -5,7 +5,8 @@ pipeline {
         AWS_REGION = 'eu-north-1'
         AWS_ACCOUNT_ID = '893915939153'
         ECR_REPO = 'test_java'
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        // These will come from Jenkins global environment variables
+        // AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY are injected automatically
     }
 
     stages {
@@ -23,47 +24,25 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh """
-                set -e
-                set -x
-                docker build -t ${ECR_REPO}:${IMAGE_TAG} .
-                docker images
-                """
+                sh 'docker build -t my-app:latest .'
             }
         }
 
-        stage('Login to ECR') {
+        stage('Login to Amazon ECR') {
             steps {
-                withAWS(credentials: 'aws-jenkins-creds', region: "${AWS_REGION}") {
-                    sh """
-                    set -e
-                    set -x
-                    aws sts get-caller-identity
-                    aws ecr get-login-password --region ${AWS_REGION} | \
-                    docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-                    """
-                }
+                sh '''
+                aws ecr get-login-password --region ${AWS_REGION} | \
+                docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                '''
             }
         }
 
-        stage('Push Image to ECR') {
+        stage('Push Docker Image to ECR') {
             steps {
-                sh """
-                set -e
-                set -x
-                docker tag ${ECR_REPO}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
-                docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
-                """
-            }
-        }
-
-        stage('Verify in ECR') {
-            steps {
-                sh """
-                set -e
-                set -x
-                aws ecr describe-images --repository-name ${ECR_REPO} --region ${AWS_REGION} --query "imageDetails[?imageTags[0]=='${IMAGE_TAG}']"
-                """
+                sh '''
+                docker tag my-app:latest ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest
+                docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest
+                '''
             }
         }
     }
