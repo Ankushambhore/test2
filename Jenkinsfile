@@ -5,6 +5,7 @@ pipeline {
         AWS_REGION = 'eu-north-1'
         AWS_ACCOUNT_ID = '893915939153'
         ECR_REPO = 'test_java'
+        IMAGE_TAG = "${env.BUILD_NUMBER}"
     }
 
     stages {
@@ -22,26 +23,37 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t my-app:latest .'
+                sh 'docker build -t ${ECR_REPO}:${IMAGE_TAG} .'
             }
         }
 
         stage('Login to Amazon ECR') {
             steps {
-                sh '''
-                aws ecr get-login-password --region ${AWS_REGION} | \
-                docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-                '''
+                withAWS(credentials: 'aws-jenkins-creds', region: "${AWS_REGION}") {
+                    sh '''
+                    aws ecr get-login-password --region ${AWS_REGION} | \
+                    docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                    '''
+                }
             }
         }
 
         stage('Push Docker Image to ECR') {
             steps {
                 sh '''
-                docker tag my-app:latest ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest
-                docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest
+                docker tag ${ECR_REPO}:${IMAGE_TAG} ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
+                docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}
                 '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Image pushed to ECR: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
+        }
+        failure {
+            echo "❌ Pipeline failed. Check logs."
         }
     }
 }
