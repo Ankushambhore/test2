@@ -63,7 +63,7 @@ pipeline {
                 echo "✅ Verifying image in ECR..."
                 sh """
                 set -x
-                aws ecr describe-images --repository-name ${ECR_REPO} --region ${AWS_REGION} --query 'imageDetails[?imageTags[0]==\`${IMAGE_TAG}\`]'
+                aws ecr describe-images --repository-name ${ECR_REPO} --region ${AWS_REGION} --query "imageDetails[?imageTags[0]=='${IMAGE_TAG}']"
                 """
             }
         }
