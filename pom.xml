@@ -7,18 +7,35 @@
     <groupId>com.example</groupId>
     <artifactId>hello-docker</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <properties>
+        <!-- Set Java version globally -->
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+    </properties>
 
     <build>
         <plugins>
-            <!-- Build a single JAR with main class -->
+            <!-- Compiler Plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+               >11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+
+            <!-- JAR Plugin to add Main-Class -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>3.2.2</version>
+                <version>3.3.0</version>
                 <configuration>
                     <archive>
                         <manifest>
-                            <mainClass>com.example.HelloWorld</mainClass>
+                            <addClasspath>true</addClasspath>
+                            <mainClass>com.example.HelloDocker</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
